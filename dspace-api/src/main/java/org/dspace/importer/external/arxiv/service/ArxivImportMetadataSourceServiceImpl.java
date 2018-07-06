@@ -4,8 +4,11 @@ import java.io.StringReader;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -171,6 +174,27 @@ public class ArxivImportMetadataSourceServiceImpl extends AbstractImportMetadata
 		return new ImportRecord(result);
 	}
 
+	private String sendRequest(Map<String, Object> params) {
+		// Create and send request
+		WebTarget target = arxivWebTarget;
+		for (Entry<String, Object> param : params.entrySet()) {
+			target = target.queryParam(param.getKey(), param.getValue());
+		}
+		String responseString = target.request("application/atom+xml;charset=UTF-8").get(String.class);
+		return responseString;
+	}
+
+	private List<ImportRecord> requestRecords(Map<String, Object> params) {
+		String responseString = sendRequest(params);
+
+		// Split and transform response records
+		List<ImportRecord> result = new LinkedList<>();
+		for (OMElement record : splitToRecords(responseString)) {
+			result.add(transformSourceRecords(record));
+		}
+		return result;
+	}
+
 	private class GetRecord implements Callable<ImportRecord> {
 
 		private String id;
@@ -194,19 +218,14 @@ public class ArxivImportMetadataSourceServiceImpl extends AbstractImportMetadata
 				return null;
 			}
 
-			// Split at / and take last part
+			// Split at "/" and take last part
 			String[] path = uri.getPath().split(Pattern.quote("/"));
 			String arxivId = path[path.length - 1];
 
-			WebTarget target = arxivWebTarget.queryParam("id_list", arxivId);
-			String responseString = target.request("application/atom+xml;charset=UTF-8").get(String.class);
+			Map<String, Object> params = new HashMap<>();
+			params.put("id_list", arxivId);
 
-			List<OMElement> omElements = splitToRecords(responseString);
-
-			List<ImportRecord> result = new LinkedList<>();
-			for (OMElement record : omElements) {
-				result.add(transformSourceRecords(record));
-			}
+			List<ImportRecord> result = requestRecords(params);
 			return result.isEmpty() ? null : result.get(0);
 		}
 	}
@@ -243,16 +262,10 @@ public class ArxivImportMetadataSourceServiceImpl extends AbstractImportMetadata
 			String[] path = uri.getPath().split(Pattern.quote("/"));
 			String arxivId = path[path.length - 1];
 
-			WebTarget target = arxivWebTarget.queryParam("id_list", arxivId);
-			String responseString = target.request("application/atom+xml;charset=UTF-8").get(String.class);
+			Map<String, Object> params = new HashMap<>();
+			params.put("id_list", arxivId);
 
-			List<OMElement> omElements = splitToRecords(responseString);
-
-			Collection<ImportRecord> result = new LinkedList<>();
-			for (OMElement record : omElements) {
-				result.add(transformSourceRecords(record));
-			}
-			return result;
+			return requestRecords(params);
 		}
 	}
 
@@ -275,8 +288,10 @@ public class ArxivImportMetadataSourceServiceImpl extends AbstractImportMetadata
 
 			// Should result in
 			// http://export.arxiv.org/api/query?search_query=all:%22some+search+term%22
-			WebTarget target = arxivWebTarget.queryParam("search_query", String.format("all:\"%s\"", queryString));
-			String responseString = target.request("application/atom+xml;charset=UTF-8").get(String.class);
+			Map<String, Object> params = new HashMap<>();
+			params.put("search_query", String.format("all:\"%s\"", queryString));
+
+			String responseString = sendRequest(params);
 
 			String count = getSingleElementValue(responseString, "opensearch:totalResults");
 			return Integer.parseInt(count);
@@ -314,16 +329,12 @@ public class ArxivImportMetadataSourceServiceImpl extends AbstractImportMetadata
 
 			// Should result in
 			// http://export.arxiv.org/api/query?search_query=all:%22some+search+term%22&start=0&max_results=10
-			WebTarget target = arxivWebTarget.queryParam("search_query", String.format("all:\"%s\"", queryString)).queryParam("start", start).queryParam("max_results", count);
-			String responseString = target.request("application/atom+xml;charset=UTF-8").get(String.class);
+			Map<String, Object> params = new HashMap<>();
+			params.put("search_query", String.format("all:\"%s\"", queryString));
+			params.put("start", start);
+			params.put("max_results", count);
 
-			List<OMElement> omElements = splitToRecords(responseString);
-
-			Collection<ImportRecord> result = new LinkedList<>();
-			for (OMElement record : omElements) {
-				result.add(transformSourceRecords(record));
-			}
-			return result;
+			return requestRecords(params);
 		}
 	}
 }
