@@ -36,7 +36,7 @@ public class ArxivImportMetadataSourceServiceImplTest {
 		assertEquals(1, dcTitle.size());
 		assertEquals("Interacting particle filters for simultaneous state and parameter estimation", get(dcTitle, 0).getValue());
 
-		Collection<MetadatumDTO> dcIdUri = first.getValue("dc", "identifier", "uri");
+		Collection<MetadatumDTO> dcIdUri = first.getValue("dc", "identifier", "other");
 		assertEquals(1, dcIdUri.size());
 		assertEquals("http://arxiv.org/abs/1709.09199v1", get(dcIdUri, 0).getValue());
 
