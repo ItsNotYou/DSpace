@@ -31,6 +31,10 @@
         Will result in using the PubmedImportService for the lookup step
         Omitting this property will default to searching over all configured ImportService implementations
     -->
+    
+    <bean id="ArxivImportService" class="org.dspace.importer.external.arxiv.service.ArxivImportMetadataSourceServiceImpl" scope="singleton">
+    	<property name="metadataFieldMapping" ref="PubmedMetadataFieldMapping"/>
+    </bean>
 
     <bean id="PubmedImportService" class="org.dspace.importer.external.pubmed.service.PubmedImportMetadataSourceServiceImpl" scope="singleton">
         <property name="metadataFieldMapping" ref="PubmedMetadataFieldMapping"/>
