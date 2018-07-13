@@ -33,7 +33,10 @@
     -->
     
     <bean id="ArxivImportService" class="org.dspace.importer.external.arxiv.service.ArxivImportMetadataSourceServiceImpl" scope="singleton">
-    	<property name="metadataFieldMapping" ref="PubmedMetadataFieldMapping"/>
+    	<property name="metadataFieldMapping" ref="ArxivMetadataFieldMapping"/>
+    </bean>
+    <bean id="ArxivMetadataFieldMapping"
+          class="org.dspace.importer.external.arxiv.service.ArxivFieldMapping">
     </bean>
 
     <bean id="PubmedImportService" class="org.dspace.importer.external.pubmed.service.PubmedImportMetadataSourceServiceImpl" scope="singleton">

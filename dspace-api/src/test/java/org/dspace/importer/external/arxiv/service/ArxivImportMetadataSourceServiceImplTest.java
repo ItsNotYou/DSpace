@@ -10,14 +10,20 @@ import org.dspace.importer.external.exception.MetadataSourceException;
 import org.dspace.importer.external.metadatamapping.MetadatumDTO;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:/spring/spring-dspace-addon-import-services.xml", "file:../dspace/config/spring/api/pubmed-integration.xml", "file:../dspace/config/spring/api/arxiv-integration.xml" })
 public class ArxivImportMetadataSourceServiceImplTest {
 
+	@Autowired
 	private ArxivImportMetadataSourceServiceImpl sut;
 
 	@Before
 	public void before() throws Exception {
-		this.sut = new ArxivImportMetadataSourceServiceImpl();
 		this.sut.init();
 	}
 

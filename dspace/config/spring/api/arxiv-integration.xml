@@ -1,0 +1,84 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+           http://www.springframework.org/schema/context
+           http://www.springframework.org/schema/context/spring-context-2.5.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd"
+       default-autowire-candidates="*Service,*DAO,javax.sql.DataSource">
+
+    <context:annotation-config/>
+    <!-- allows us to use spring annotations in beans -->
+
+    <util:map id="arxivMetadataFieldMap" key-type="org.dspace.importer.external.metadatamapping.MetadataFieldConfig"
+              value-type="org.dspace.importer.external.metadatamapping.contributor.MetadataContributor">
+        <description>Defines which metadatum is mapped on which metadatum. Note that while the key must be unique it
+            only matters here for postprocessing of the value. The mapped MetadatumContributor has full control over
+            what metadatafield is generated.
+        </description>
+        <entry key-ref="dc.title" value-ref="titleContrib"/>
+        <entry key-ref="dc.identifier.other" value-ref="idContrib"/>
+        <entry key-ref="dc.identifier.doi" value-ref="doiContrib"/>
+        <entry key-ref="dc.description.abstract" value-ref="summaryContrib"/>
+        <entry key-ref="dc.relation.uri" value-ref="relationContrib"/>
+        <entry key-ref="dc.contributor.author" value-ref="authorContrib"/>
+        <entry key-ref="dc.date.issued" value-ref="issuedContrib"/>
+    </util:map>
+    
+    <bean id="titleContrib" class="org.dspace.importer.external.arxiv.service.ArxivXpathMetadatumContributor">
+        <property name="field" ref="dc.title"/>
+        <property name="query" value=".//atom:title"/>
+        <property name="prefixToNamespaceMapping" ref="prefixToNamespaceMapping"/>
+    </bean>
+    
+    <bean id="idContrib" class="org.dspace.importer.external.arxiv.service.ArxivXpathMetadatumContributor">
+        <property name="field" ref="dc.identifier.other"/>
+        <property name="query" value=".//atom:id"/>
+        <property name="prefixToNamespaceMapping" ref="prefixToNamespaceMapping"/>
+    </bean>
+    
+    <bean id="doiContrib" class="org.dspace.importer.external.arxiv.service.ArxivXpathMetadatumContributor">
+        <property name="field" ref="dc.identifier.doi"/>
+        <property name="query" value=".//arxiv:doi"/>
+        <property name="prefixToNamespaceMapping" ref="prefixToNamespaceMapping"/>
+    </bean>
+    
+    <bean id="summaryContrib" class="org.dspace.importer.external.arxiv.service.ArxivXpathMetadatumContributor">
+        <property name="field" ref="dc.description.abstract"/>
+        <property name="query" value=".//atom:summary"/>
+        <property name="prefixToNamespaceMapping" ref="prefixToNamespaceMapping"/>
+    </bean>
+    
+    <bean id="relationContrib" class="org.dspace.importer.external.arxiv.service.ArxivXpathMetadatumContributor">
+        <property name="field" ref="dc.relation.uri"/>
+        <property name="query" value=".//atom:link/@href"/>
+        <property name="prefixToNamespaceMapping" ref="prefixToNamespaceMapping"/>
+    </bean>
+    
+    <bean id="authorContrib" class="org.dspace.importer.external.arxiv.service.ArxivAuthorMetadatumContributor">
+        <property name="field" ref="dc.contributor.author"/>
+        <property name="query" value=".//atom:author/atom:name"/>
+        <property name="prefixToNamespaceMapping" ref="prefixToNamespaceMapping"/>
+    </bean>
+    
+    <bean id="issuedContrib" class="org.dspace.importer.external.arxiv.service.ArxivIssuedMetadatumContributor">
+        <property name="field" ref="dc.date.issued"/>
+        <property name="query" value=".//atom:published"/>
+        <property name="prefixToNamespaceMapping" ref="prefixToNamespaceMapping"/>
+    </bean>
+    
+    <bean id="dc.identifier.doi" class="org.dspace.importer.external.metadatamapping.MetadataFieldConfig">
+        <constructor-arg value="dc.identifier.doi"/>
+    </bean>
+    
+    <bean id="dc.relation.uri" class="org.dspace.importer.external.metadatamapping.MetadataFieldConfig">
+        <constructor-arg value="dc.relation.uri"/>
+    </bean>
+    
+    <util:map id="prefixToNamespaceMapping">
+        <entry key="http://www.w3.org/2005/Atom" value="atom" />
+        <entry key="http://arxiv.org/schemas/atom" value="arxiv" />
+    </util:map>
+
+</beans>

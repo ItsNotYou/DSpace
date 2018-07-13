@@ -10,14 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
-import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
 
-import org.apache.axiom.om.OMAttribute;
 import org.apache.axiom.om.OMElement;
 import org.apache.axiom.om.OMXMLBuilderFactory;
 import org.apache.axiom.om.OMXMLParserWrapper;
@@ -29,7 +27,6 @@ import org.dspace.content.service.ItemService;
 import org.dspace.importer.external.datamodel.ImportRecord;
 import org.dspace.importer.external.datamodel.Query;
 import org.dspace.importer.external.exception.MetadataSourceException;
-import org.dspace.importer.external.metadatamapping.MetadatumDTO;
 import org.dspace.importer.external.pubmed.service.PubmedImportMetadataSourceServiceImpl;
 import org.dspace.importer.external.service.AbstractImportMetadataSourceService;
 import org.jaxen.JaxenException;
@@ -124,54 +121,6 @@ public class ArxivImportMetadataSourceServiceImpl extends AbstractImportMetadata
 		} catch (JaxenException e) {
 			return null;
 		}
-	}
-
-	private Collection<MetadatumDTO> readTransformed(OMElement recordType, String xpathExpression, String schema, String element, String qualifier) throws JaxenException {
-		return readTransformed(recordType, xpathExpression, schema, element, qualifier, new IdentityTransformer());
-	}
-
-	private Collection<MetadatumDTO> readTransformed(OMElement recordType, String xpathExpression, String schema, String element, String qualifier, Function<String, String> transformer) throws JaxenException {
-		AXIOMXPath xpath = new AXIOMXPath(xpathExpression);
-		xpath.addNamespace("opensearch", "http://a9.com/-/spec/opensearch/1.1/");
-		xpath.addNamespace("atom", "http://www.w3.org/2005/Atom");
-		xpath.addNamespace("arxiv", "http://arxiv.org/schemas/atom");
-
-		List<MetadatumDTO> result = new LinkedList<>();
-		for (Object e : xpath.selectNodes(recordType)) {
-			// Supports XML elements and attributes
-			String text = e instanceof OMAttribute ? ((OMAttribute) e).getAttributeValue() : ((OMElement) e).getText();
-
-			// arXiv uses a lot of line breaks in its feed. Remove them!
-			// Also remove leading and trailing spaces
-			String trimmedText = text.replaceAll("[\\s\\r\\n]+", " ").replaceAll("^\\s*|\\s*$", "");
-			// Apply transformer
-			trimmedText = transformer.apply(trimmedText);
-
-			MetadatumDTO meta = new MetadatumDTO();
-			meta.setSchema(schema);
-			meta.setElement(element);
-			meta.setQualifier(qualifier);
-			meta.setValue(trimmedText);
-			result.add(meta);
-		}
-		return result;
-	}
-
-	@Override
-	public ImportRecord transformSourceRecords(OMElement recordType) {
-		List<MetadatumDTO> result = new LinkedList<>();
-		try {
-			result.addAll(readTransformed(recordType, ".//atom:title", "dc", "title", null));
-			result.addAll(readTransformed(recordType, ".//atom:id", "dc", "identifier", "other"));
-			result.addAll(readTransformed(recordType, ".//arxiv:doi", "dc", "identifier", "doi"));
-			result.addAll(readTransformed(recordType, ".//atom:summary", "dc", "description", "abstract"));
-			result.addAll(readTransformed(recordType, ".//atom:author/atom:name", "dc", "contributor", "author", new AuthorTransformer()));
-			result.addAll(readTransformed(recordType, ".//atom:published", "dc", "date", "issued", new IssuedTransformer()));
-			result.addAll(readTransformed(recordType, ".//atom:link/@href", "dc", "relation", "uri"));
-		} catch (JaxenException e) {
-			return null;
-		}
-		return new ImportRecord(result);
 	}
 
 	private String sendRequest(Map<String, Object> params) {
