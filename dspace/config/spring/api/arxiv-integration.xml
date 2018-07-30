@@ -29,6 +29,7 @@
     <bean id="arxivTitleContrib" class="org.dspace.importer.external.arxiv.service.ArxivXpathMetadatumContributor">
         <property name="field" ref="dc.title"/>
         <property name="query" value=".//atom:title"/>
+        <property name="mathJaxMapped" value="true"/>
         <property name="prefixToNamespaceMapping" ref="arxivPrefixToNamespaceMapping"/>
     </bean>
     
@@ -47,6 +48,7 @@
     <bean id="arxivSummaryContrib" class="org.dspace.importer.external.arxiv.service.ArxivXpathMetadatumContributor">
         <property name="field" ref="dc.description.abstract"/>
         <property name="query" value=".//atom:summary"/>
+        <property name="mathJaxMapped" value="true"/>
         <property name="prefixToNamespaceMapping" ref="arxivPrefixToNamespaceMapping"/>
     </bean>
     
