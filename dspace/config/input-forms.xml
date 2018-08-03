@@ -101,7 +101,7 @@
          <dc-qualifier>citation</dc-qualifier>
          <repeatable>false</repeatable>
          <label>Citation</label>
-         <input-type>onebox</input-type>
+         <input-type>textarea</input-type>
          <hint>Enter the standard citation for the previously issued instance of this item.</hint>
          <required></required>
        </field>
