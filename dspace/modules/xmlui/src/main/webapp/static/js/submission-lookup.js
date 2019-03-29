@@ -46,6 +46,9 @@
     });
 
     function startLookup(searchInput,start) {
+        var loadingSpinner = '<img id="aspect_submission_StepTransformer_field_lookup_feedback" src="' + window.publication.contextPath + '/static/icons/loadingspinner.gif" alt="" height="20px" width="20px" style="float:left; margin-top:5px">';
+        $("#aspect_submission_StepTransformer_field_lookup").after(loadingSpinner);
+
         $.ajax({url: window.publication.contextPath+"/json/submissionLookup?search=" + searchInput +"&start="+start,
             type: "POST",
             dataType: "json",
@@ -69,6 +72,9 @@
                     $("#aspect_submission_StepTransformer_field_publication_id").val(pmid);
                     $("#aspect_submission_StepTransformer_div_StartSubmissionLookupStep").submit();
                 });
+            },
+            complete: function() {
+                $("#aspect_submission_StepTransformer_field_lookup_feedback").remove();
             }
         });
     }
