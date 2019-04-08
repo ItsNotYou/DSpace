@@ -9,8 +9,8 @@ import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.app.xmlui.wing.element.Body;
 import org.dspace.app.xmlui.wing.element.Division;
+import org.dspace.app.xmlui.wing.element.Item;
 import org.dspace.app.xmlui.wing.element.List;
-import org.dspace.app.xmlui.wing.element.Radio;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
 import org.dspace.submit.step.DataUploadQuestionStep;
@@ -38,24 +38,24 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 
 		Division inner = div.addDivision("submit-data-completeness-inner");
 		inner.setHead(REVIEW_HEAD);
-		inner.addPara(DESCRIPTIVE_MESSAGE);
-
-		// Show different options
 		List controls = inner.addList("submit-data-completeness-list", List.TYPE_FORM);
 
-		addUploadOption(controls, DataUploadQuestionStep.UPLOAD_NONEUSED, UPLOAD_NONEUSED);
-		addUploadOption(controls, DataUploadQuestionStep.UPLOAD_CODEONLY, UPLOAD_CODEONLY);
-		addUploadOption(controls, DataUploadQuestionStep.UPLOAD_DATAONLY, UPLOAD_DATAONLY);
-		addUploadOption(controls, DataUploadQuestionStep.UPLOAD_CODEANDDATA, UPLOAD_CODEANDDATA);
-		addUploadOption(controls, DataUploadQuestionStep.UPLOAD_MISSINGARTIFACT, UPLOAD_MISSINGARTIFACT);
+		// "Based on"
+		controls.addLabel("Item is based on");
+		Item base = controls.addItem();
+		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_TEXT, "text");
+		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_DATA, "data");
+		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_CODE, "code");
+
+		// "Is complete" and "Comment if incomplete"
+		controls.addLabel("Uploaded artifacts");
+		Item complete = controls.addItem();
+		complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE).addOption(DataUploadQuestionStep.UPLOAD_STATE_COMPLETE, "All artifacts mentioned above were uploaded.");
+		complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE).addOption(DataUploadQuestionStep.UPLOAD_STATE_INCOMPLETE, "Some artifacts mentioned above are missing, a reason is provided below.");
+		complete.addTextArea(DataUploadQuestionStep.PARAMETER_COMMENT);
 
 		// add standard control/paging buttons
 		addControlButtons(controls);
-	}
-
-	private void addUploadOption(List controls, String option, String message) throws WingException {
-		Radio decision = controls.addItem().addRadio(DataUploadQuestionStep.PARAMETER_NAME);
-		decision.addOption(option, message);
 	}
 
 	@Override
