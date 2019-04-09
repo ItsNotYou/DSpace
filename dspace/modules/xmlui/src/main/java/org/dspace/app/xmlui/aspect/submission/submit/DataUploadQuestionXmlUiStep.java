@@ -1,5 +1,17 @@
 package org.dspace.app.xmlui.aspect.submission.submit;
 
+import static org.dspace.submit.step.DataUploadQuestionStep.BASED_ON_CODE;
+import static org.dspace.submit.step.DataUploadQuestionStep.BASED_ON_DATA;
+import static org.dspace.submit.step.DataUploadQuestionStep.BASED_ON_TEXT;
+import static org.dspace.submit.step.DataUploadQuestionStep.METADATA_BASED_ON;
+import static org.dspace.submit.step.DataUploadQuestionStep.METADATA_COMMENT;
+import static org.dspace.submit.step.DataUploadQuestionStep.METADATA_UPLOAD_STATE;
+import static org.dspace.submit.step.DataUploadQuestionStep.PARAMETER_BASED_ON;
+import static org.dspace.submit.step.DataUploadQuestionStep.PARAMETER_COMMENT;
+import static org.dspace.submit.step.DataUploadQuestionStep.PARAMETER_UPLOAD_STATE;
+import static org.dspace.submit.step.DataUploadQuestionStep.UPLOAD_STATE_COMPLETE;
+import static org.dspace.submit.step.DataUploadQuestionStep.UPLOAD_STATE_INCOMPLETE;
+
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -9,6 +21,7 @@ import org.dspace.app.xmlui.utils.UIException;
 import org.dspace.app.xmlui.wing.Message;
 import org.dspace.app.xmlui.wing.WingException;
 import org.dspace.app.xmlui.wing.element.Body;
+import org.dspace.app.xmlui.wing.element.CheckBox;
 import org.dspace.app.xmlui.wing.element.Division;
 import org.dspace.app.xmlui.wing.element.Item;
 import org.dspace.app.xmlui.wing.element.List;
@@ -16,7 +29,9 @@ import org.dspace.app.xmlui.wing.element.Radio;
 import org.dspace.app.xmlui.wing.element.TextArea;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Collection;
-import org.dspace.submit.step.DataUploadQuestionStep;
+import org.dspace.content.MetadataValue;
+import org.dspace.content.factory.ContentServiceFactory;
+import org.dspace.content.service.ItemService;
 import org.xml.sax.SAXException;
 
 public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
@@ -25,8 +40,12 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 
 	protected static final Message T_required_field = message("xmlui.Submission.submit.DescribeStep.required_field");
 
+	protected ItemService itemService = ContentServiceFactory.getInstance().getItemService();
+
 	@Override
 	public void addBody(Body body) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException, ProcessingException {
+		// Obtain the inputs (i.e. metadata fields we are going to display)
+		org.dspace.content.Item item = submission.getItem();
 		Collection collection = submission.getCollection();
 		String actionURL = contextPath + "/handle/" + collection.getHandle() + "/submit/" + knot.getId() + ".continue";
 
@@ -42,31 +61,24 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 		controls.addLabel("Item scope");
 		Item base = controls.addItem();
 		base.addContent("Check all content types this item is based on. If you only use simulation data that you create and use within a script, please leave the 'data' box unchecked.");
-		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(true, DataUploadQuestionStep.BASED_ON_TEXT, "text (e.g. article)");
-		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_DATA, "data (e.g. experimental data)");
-		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_CODE, "code (e.g. scripts, programs)");
+		renderCheckBox(base, METADATA_BASED_ON, PARAMETER_BASED_ON, BASED_ON_TEXT, "text (e.g. article)");
+		renderCheckBox(base, METADATA_BASED_ON, PARAMETER_BASED_ON, BASED_ON_DATA, "data (e.g. experimental data)");
+		renderCheckBox(base, METADATA_BASED_ON, PARAMETER_BASED_ON, BASED_ON_CODE, "code (e.g. scripts, programs)");
 
 		// Input for "Is complete" and "Comment if incomplete"
 		controls.addLabel("Uploaded artifacts");
 		Item complete = controls.addItem();
 		complete.addContent("Specify whether all artifacts mentioned in 'Item scope' were uploaded. Please provide a reason if some artifacts were not uploaded.");
-		// Radio buttons
-		{
-			complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE).addOption(DataUploadQuestionStep.UPLOAD_STATE_COMPLETE, "complete: all artifacts mentioned above were uploaded.");
-			Radio radio = complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE);
-			radio.addOption(DataUploadQuestionStep.UPLOAD_STATE_INCOMPLETE, "incomplete: some artifacts mentioned above were not uploaded, a reason is provided below.");
-			// Add error message if necessary
-			if (isFieldInError(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE)) {
-				radio.addError(T_required_field);
-			}
+		renderRadio(complete, METADATA_UPLOAD_STATE, PARAMETER_UPLOAD_STATE, UPLOAD_STATE_COMPLETE, "complete: all artifacts mentioned above were uploaded.");
+		Radio radio = renderRadio(complete, METADATA_UPLOAD_STATE, PARAMETER_UPLOAD_STATE, UPLOAD_STATE_INCOMPLETE, "incomplete: some artifacts mentioned above were not uploaded, a reason is provided below.");
+		TextArea text = renderTextArea(complete, METADATA_COMMENT, PARAMETER_COMMENT);
+
+		// Add error messages if necessary
+		if (isFieldInError(PARAMETER_UPLOAD_STATE)) {
+			radio.addError(T_required_field);
 		}
-		// Comment box
-		{
-			TextArea text = complete.addTextArea(DataUploadQuestionStep.PARAMETER_COMMENT);
-			// Add error message if necessary
-			if (isFieldInError(DataUploadQuestionStep.PARAMETER_COMMENT)) {
-				text.addError(T_required_field);
-			}
+		if (isFieldInError(PARAMETER_COMMENT)) {
+			text.addError(T_required_field);
 		}
 
 		// add standard control/paging buttons
@@ -81,6 +93,44 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 	 */
 	private boolean isFieldInError(String fieldName) {
 		return (this.errorFields.contains(fieldName));
+	}
+
+	private TextArea renderTextArea(Item ui, String[] metaField, String parameterName) throws WingException {
+		org.dspace.content.Item item = submission.getItem();
+		java.util.List<MetadataValue> values = itemService.getMetadata(item, metaField[0], metaField[1], metaField[2], org.dspace.content.Item.ANY);
+
+		TextArea text = ui.addTextArea(parameterName);
+		if (values.size() >= 1) {
+			text.setValue(values.get(0).getValue());
+		}
+		return text;
+	}
+
+	private Radio renderRadio(Item ui, String[] metaField, String parameterName, String parameterValue, String description) throws WingException {
+		org.dspace.content.Item item = submission.getItem();
+		java.util.List<MetadataValue> values = itemService.getMetadata(item, metaField[0], metaField[1], metaField[2], org.dspace.content.Item.ANY);
+
+		Radio radio = ui.addRadio(parameterName);
+		radio.addOption(isContained(parameterValue, values), parameterValue, description);
+		return radio;
+	}
+
+	private CheckBox renderCheckBox(Item ui, String[] metaField, String parameterName, String parameterValue, String description) throws WingException {
+		org.dspace.content.Item item = submission.getItem();
+		java.util.List<MetadataValue> values = itemService.getMetadata(item, metaField[0], metaField[1], metaField[2], org.dspace.content.Item.ANY);
+
+		CheckBox checkbox = ui.addCheckBox(parameterName);
+		checkbox.addOption(isContained(parameterValue, values), parameterValue, description);
+		return checkbox;
+	}
+
+	private boolean isContained(String value, java.util.List<MetadataValue> values) {
+		for (MetadataValue mv : values) {
+			if (value.equals(mv.getValue())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	@Override
