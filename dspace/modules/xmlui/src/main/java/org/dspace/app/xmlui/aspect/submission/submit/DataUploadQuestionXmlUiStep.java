@@ -41,17 +41,19 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 		List controls = inner.addList("submit-data-completeness-list", List.TYPE_FORM);
 
 		// "Based on"
-		controls.addLabel("Item is based on");
+		controls.addLabel("Item scope");
 		Item base = controls.addItem();
-		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_TEXT, "text");
-		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_DATA, "data");
-		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_CODE, "code");
+		base.addContent("Check all content types this item is based on. If you only use simulation data that you create and use within a script, please leave the 'data' box unchecked.");
+		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(true, DataUploadQuestionStep.BASED_ON_TEXT, "text (e.g. article)");
+		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_DATA, "data (e.g. experimental data)");
+		base.addCheckBox(DataUploadQuestionStep.PARAMETER_BASED_ON).addOption(DataUploadQuestionStep.BASED_ON_CODE, "code (e.g. scripts, programs)");
 
 		// "Is complete" and "Comment if incomplete"
 		controls.addLabel("Uploaded artifacts");
 		Item complete = controls.addItem();
-		complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE).addOption(DataUploadQuestionStep.UPLOAD_STATE_COMPLETE, "All artifacts mentioned above were uploaded.");
-		complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE).addOption(DataUploadQuestionStep.UPLOAD_STATE_INCOMPLETE, "Some artifacts mentioned above are missing, a reason is provided below.");
+		complete.addContent("Specify whether all artifacts mentioned in 'Item scope' were uploaded. Please provide a reason if some artifacts were not uploaded.");
+		complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE).addOption(DataUploadQuestionStep.UPLOAD_STATE_COMPLETE, "complete: all artifacts mentioned above were uploaded.");
+		complete.addRadio(DataUploadQuestionStep.PARAMETER_UPLOAD_STATE).addOption(DataUploadQuestionStep.UPLOAD_STATE_INCOMPLETE, "incomplete: some artifacts mentioned above were not uploaded, a reason is provided below.");
 		complete.addTextArea(DataUploadQuestionStep.PARAMETER_COMMENT);
 
 		// add standard control/paging buttons
