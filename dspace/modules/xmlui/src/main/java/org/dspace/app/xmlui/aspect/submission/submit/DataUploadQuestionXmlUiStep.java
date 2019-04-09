@@ -14,6 +14,7 @@ import static org.dspace.submit.step.DataUploadQuestionStep.UPLOAD_STATE_INCOMPL
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 import org.apache.cocoon.ProcessingException;
 import org.dspace.app.xmlui.aspect.submission.AbstractSubmissionStep;
@@ -34,9 +35,18 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.content.service.ItemService;
 import org.xml.sax.SAXException;
 
+import com.google.common.base.Joiner;
+import com.google.common.base.Strings;
+
 public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 
 	private static final String REVIEW_HEAD = "Check File Completeness";
+
+	private static final String LABEL_BASED_ON = "Item scope";
+	private static final String LABEL_UPLOAD_STATE = "Uploaded artifacts";
+
+	private static final String DESCRIPTION_COMPLETE = "complete: all artifacts mentioned above were uploaded.";
+	private static final String DESCRIPTION_INCOMPLETE = "incomplete: some artifacts mentioned above were not uploaded, a reason is provided below.";
 
 	protected static final Message T_required_field = message("xmlui.Submission.submit.DescribeStep.required_field");
 
@@ -57,7 +67,7 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 		List controls = inner.addList("submit-data-completeness-list", List.TYPE_FORM);
 
 		// Input for "Based on"
-		controls.addLabel("Item scope");
+		controls.addLabel(LABEL_BASED_ON);
 		Item base = controls.addItem();
 		base.addContent("Check all content types this item is based on. If you only use simulation data that you create and use within a script, please leave the 'data' box unchecked.");
 		renderCheckBox(base, METADATA_BASED_ON, PARAMETER_BASED_ON, BASED_ON_TEXT, "text (e.g. article)");
@@ -65,11 +75,11 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 		renderCheckBox(base, METADATA_BASED_ON, PARAMETER_BASED_ON, BASED_ON_CODE, "code (e.g. scripts, programs)");
 
 		// Input for "Is complete" and "Comment if incomplete"
-		controls.addLabel("Uploaded artifacts");
+		controls.addLabel(LABEL_UPLOAD_STATE);
 		Item complete = controls.addItem();
 		complete.addContent("Specify whether all artifacts mentioned in 'Item scope' were uploaded. Please provide a reason if some artifacts were not uploaded.");
-		renderRadio(complete, METADATA_UPLOAD_STATE, PARAMETER_UPLOAD_STATE, UPLOAD_STATE_COMPLETE, "complete: all artifacts mentioned above were uploaded.");
-		Radio radio = renderRadio(complete, METADATA_UPLOAD_STATE, PARAMETER_UPLOAD_STATE, UPLOAD_STATE_INCOMPLETE, "incomplete: some artifacts mentioned above were not uploaded, a reason is provided below.");
+		renderRadio(complete, METADATA_UPLOAD_STATE, PARAMETER_UPLOAD_STATE, UPLOAD_STATE_COMPLETE, DESCRIPTION_COMPLETE);
+		Radio radio = renderRadio(complete, METADATA_UPLOAD_STATE, PARAMETER_UPLOAD_STATE, UPLOAD_STATE_INCOMPLETE, DESCRIPTION_INCOMPLETE);
 		TextArea text = renderTextArea(complete, METADATA_COMMENT, PARAMETER_COMMENT);
 
 		// Add error messages if necessary
@@ -82,6 +92,39 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 
 		// add standard control/paging buttons
 		addControlButtons(controls);
+	}
+
+	@Override
+	public List addReviewSection(List reviewList) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
+		// Create a new list section for this step (and set its heading)
+		List describeSection = reviewList.addList("submit-review-" + this.stepAndPage, List.TYPE_FORM);
+		describeSection.setHead(REVIEW_HEAD);
+
+		// Show base
+		describeSection.addLabel(LABEL_BASED_ON);
+		java.util.List<String> bases = new ArrayList<String>();
+		for (String key : new String[] { BASED_ON_TEXT, BASED_ON_DATA, BASED_ON_CODE }) {
+			if (isInMetadata(METADATA_BASED_ON, key)) {
+				bases.add(key);
+			}
+		}
+		describeSection.addItem(Joiner.on(", ").join(bases));
+
+		// Show upload state
+		describeSection.addLabel(LABEL_UPLOAD_STATE);
+		if (isInMetadata(METADATA_UPLOAD_STATE, UPLOAD_STATE_COMPLETE)) {
+			describeSection.addItem(DESCRIPTION_COMPLETE);
+		} else if (isInMetadata(METADATA_UPLOAD_STATE, UPLOAD_STATE_INCOMPLETE)) {
+			describeSection.addItem(DESCRIPTION_INCOMPLETE);
+		}
+
+		// Show comment
+		String comment = getFirstMetadata(METADATA_COMMENT, null);
+		if (!Strings.isNullOrEmpty(comment)) {
+			describeSection.addItem(comment);
+		}
+
+		return describeSection;
 	}
 
 	/**
@@ -135,17 +178,5 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 		CheckBox checkbox = ui.addCheckBox(parameterName);
 		checkbox.addOption(isInMetadata(metaField, parameterValue), parameterValue, description);
 		return checkbox;
-	}
-
-	@Override
-	public List addReviewSection(List reviewList) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException {
-		List uploadSection = reviewList.addList("submit-review-" + this.stepAndPage, List.TYPE_FORM);
-		uploadSection.setHead(REVIEW_HEAD);
-
-		uploadSection.addItem("The item doesn't contain code");
-
-		// TODO Auto-generated method stub
-
-		return uploadSection;
 	}
 }
