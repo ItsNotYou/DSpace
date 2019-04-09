@@ -45,7 +45,6 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 	@Override
 	public void addBody(Body body) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException, ProcessingException {
 		// Obtain the inputs (i.e. metadata fields we are going to display)
-		org.dspace.content.Item item = submission.getItem();
 		Collection collection = submission.getCollection();
 		String actionURL = contextPath + "/handle/" + collection.getHandle() + "/submit/" + knot.getId() + ".continue";
 
@@ -95,42 +94,47 @@ public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 		return (this.errorFields.contains(fieldName));
 	}
 
-	private TextArea renderTextArea(Item ui, String[] metaField, String parameterName) throws WingException {
+	private java.util.List<MetadataValue> getMetadata(String[] metaField) {
 		org.dspace.content.Item item = submission.getItem();
 		java.util.List<MetadataValue> values = itemService.getMetadata(item, metaField[0], metaField[1], metaField[2], org.dspace.content.Item.ANY);
-
-		TextArea text = ui.addTextArea(parameterName);
-		if (values.size() >= 1) {
-			text.setValue(values.get(0).getValue());
-		}
-		return text;
+		return values;
 	}
 
-	private Radio renderRadio(Item ui, String[] metaField, String parameterName, String parameterValue, String description) throws WingException {
-		org.dspace.content.Item item = submission.getItem();
-		java.util.List<MetadataValue> values = itemService.getMetadata(item, metaField[0], metaField[1], metaField[2], org.dspace.content.Item.ANY);
-
-		Radio radio = ui.addRadio(parameterName);
-		radio.addOption(isContained(parameterValue, values), parameterValue, description);
-		return radio;
-	}
-
-	private CheckBox renderCheckBox(Item ui, String[] metaField, String parameterName, String parameterValue, String description) throws WingException {
-		org.dspace.content.Item item = submission.getItem();
-		java.util.List<MetadataValue> values = itemService.getMetadata(item, metaField[0], metaField[1], metaField[2], org.dspace.content.Item.ANY);
-
-		CheckBox checkbox = ui.addCheckBox(parameterName);
-		checkbox.addOption(isContained(parameterValue, values), parameterValue, description);
-		return checkbox;
-	}
-
-	private boolean isContained(String value, java.util.List<MetadataValue> values) {
+	private boolean isInMetadata(String[] metaField, String value) {
+		java.util.List<MetadataValue> values = getMetadata(metaField);
 		for (MetadataValue mv : values) {
 			if (value.equals(mv.getValue())) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	private String getFirstMetadata(String[] metaField, String defaultValue) {
+		java.util.List<MetadataValue> values = getMetadata(metaField);
+		if (values.size() >= 1) {
+			return values.get(0).getValue();
+		} else {
+			return defaultValue;
+		}
+	}
+
+	private TextArea renderTextArea(Item ui, String[] metaField, String parameterName) throws WingException {
+		TextArea text = ui.addTextArea(parameterName);
+		text.setValue(getFirstMetadata(metaField, ""));
+		return text;
+	}
+
+	private Radio renderRadio(Item ui, String[] metaField, String parameterName, String parameterValue, String description) throws WingException {
+		Radio radio = ui.addRadio(parameterName);
+		radio.addOption(isInMetadata(metaField, parameterValue), parameterValue, description);
+		return radio;
+	}
+
+	private CheckBox renderCheckBox(Item ui, String[] metaField, String parameterName, String parameterValue, String description) throws WingException {
+		CheckBox checkbox = ui.addCheckBox(parameterName);
+		checkbox.addOption(isInMetadata(metaField, parameterValue), parameterValue, description);
+		return checkbox;
 	}
 
 	@Override
