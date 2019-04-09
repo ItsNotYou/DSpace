@@ -18,14 +18,7 @@ import org.xml.sax.SAXException;
 
 public class DataUploadQuestionXmlUiStep extends AbstractSubmissionStep {
 
-	private static final String DESCRIPTIVE_MESSAGE = "Bla bla bla describe this step";
 	private static final String REVIEW_HEAD = "Check File Completeness";
-
-	private static final String UPLOAD_NONEUSED = "The item is not based on code or data.";
-	private static final String UPLOAD_CODEONLY = "The item is only based on code and the code is uploaded.";
-	private static final String UPLOAD_DATAONLY = "The item is only based on data and the data is uploaded.";
-	private static final String UPLOAD_CODEANDDATA = "The item is based on code and data. Both are uploaded.";
-	private static final String UPLOAD_MISSINGARTIFACT = "The item is based on code or data but at least one of these is not uploaded.";
 
 	@Override
 	public void addBody(Body body) throws SAXException, WingException, UIException, SQLException, IOException, AuthorizeException, ProcessingException {
