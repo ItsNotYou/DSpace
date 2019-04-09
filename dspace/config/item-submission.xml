@@ -246,7 +246,16 @@
            <workflow-editable>true</workflow-editable>
        </step>
 
- 	  <!--Step 5 will be to Verify/Review everything -->
+      <!--Step 5 will be to verify completeness of uploaded code and data -->
+      <step>
+         <heading>submit.progressbar.verify</heading>
+         <processing-class>org.dspace.submit.step.DataUploadQuestionStep</processing-class>
+         <xmlui-binding>org.dspace.app.xmlui.aspect.submission.submit.DataUploadQuestionXmlUiStep</xmlui-binding>
+         <workflow-editable>true</workflow-editable>
+      </step>
+
+
+ 	  <!--Step 6 will be to Verify/Review everything -->
  	  <step>
         <heading>submit.progressbar.verify</heading>
         <processing-class>org.dspace.submit.step.VerifyStep</processing-class>
