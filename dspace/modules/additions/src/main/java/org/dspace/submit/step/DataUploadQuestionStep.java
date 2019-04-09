@@ -12,6 +12,7 @@ import org.dspace.app.util.SubmissionInfo;
 import org.dspace.app.util.Util;
 import org.dspace.authorize.AuthorizeException;
 import org.dspace.content.Item;
+import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.core.Context;
 import org.dspace.submit.AbstractProcessingStep;
 
@@ -55,6 +56,9 @@ public class DataUploadQuestionStep extends AbstractProcessingStep {
 	 */
 	public static final String[] METADATA_COMMENT = { "crc", "upload", "comment" };
 
+	// the metadata language qualifier
+	public static final String LANGUAGE_QUALIFIER = "en";
+
 	/***************************************************************************
 	 * STATUS / ERROR FLAGS (returned by doProcessing() if an error occurs or
 	 * additional user interaction may be required)
@@ -63,53 +67,63 @@ public class DataUploadQuestionStep extends AbstractProcessingStep {
 	 * in the JSPStepManager class)
 	 **************************************************************************/
 	/**
-	 * User didn't select an upload state
+	 * there were required fields that were not filled out
 	 */
-	public static final int STATUS_NO_STATE_SELECTED = 1;
-
-	// the metadata language qualifier
-	public static final String LANGUAGE_QUALIFIER = "en";
+	public static final int STATUS_MISSING_REQUIRED_FIELDS = 2;
 
 	@Override
 	public int doProcessing(Context context, HttpServletRequest request, HttpServletResponse response, SubmissionInfo subInfo) throws ServletException, IOException, SQLException, AuthorizeException {
-		// get button user pressed
+		// get button user pressed and reference to item
 		String buttonPressed = Util.getSubmitButton(request, NEXT_BUTTON);
-
-		// get reference to item
 		Item item = subInfo.getSubmissionItem().getItem();
 
-		// For Manakin:
+		// Step 1:
+		// clear out all item metadata defined on this page
+		itemService.clearMetadata(context, item, METADATA_BASED_ON[0], METADATA_BASED_ON[1], METADATA_BASED_ON[2], Item.ANY);
+		itemService.clearMetadata(context, item, METADATA_UPLOAD_STATE[0], METADATA_UPLOAD_STATE[1], METADATA_UPLOAD_STATE[2], Item.ANY);
+		itemService.clearMetadata(context, item, METADATA_COMMENT[0], METADATA_COMMENT[1], METADATA_COMMENT[2], Item.ANY);
+
+		// Clear required-field errors first
+		clearErrorFields(request);
+
+		// Step 2:
+		// now update the item metadata
+
 		// Choosing an upload base means selecting one or more options
 		String[] base = request.getParameterValues(PARAMETER_BASED_ON);
-		itemService.clearMetadata(context, item, METADATA_BASED_ON[0], METADATA_BASED_ON[1], METADATA_BASED_ON[2], Item.ANY);
 		if (base != null) {
 			itemService.addMetadata(context, item, METADATA_BASED_ON[0], METADATA_BASED_ON[1], METADATA_BASED_ON[2], LANGUAGE_QUALIFIER, Arrays.asList(base));
 		}
-
-		// For Manakin:
 		// Choosing an upload state means selecting one option
 		String state = request.getParameter(PARAMETER_UPLOAD_STATE);
-		itemService.clearMetadata(context, item, METADATA_UPLOAD_STATE[0], METADATA_UPLOAD_STATE[1], METADATA_UPLOAD_STATE[2], Item.ANY);
 		if (state != null) {
 			itemService.addMetadata(context, item, METADATA_UPLOAD_STATE[0], METADATA_UPLOAD_STATE[1], METADATA_UPLOAD_STATE[2], LANGUAGE_QUALIFIER, state);
 		}
-
-		// For Manakin:
 		// Giving a comment means entering some free text
 		String comment = request.getParameter(PARAMETER_COMMENT);
-		itemService.clearMetadata(context, item, METADATA_COMMENT[0], METADATA_COMMENT[1], METADATA_COMMENT[2], Item.ANY);
 		if (comment != null && !comment.isEmpty()) {
 			itemService.addMetadata(context, item, METADATA_COMMENT[0], METADATA_COMMENT[1], METADATA_COMMENT[2], LANGUAGE_QUALIFIER, comment);
 		}
 
-		/*
-		 * if (base == null && buttonPressed.equals(NEXT_BUTTON)) { return
-		 * STATUS_NO_STATE_SELECTED; }
-		 */
+		// Step 3:
+		// Check to see if any fields are missing
 
-		// TODO: check for correct states
+		// since this field is missing add to list of error fields
+		// TODO addErrorField(request, getFieldName(inputs[i]));
 
+		// Step 4:
+		// Save changes to database
+		ContentServiceFactory.getInstance().getInProgressSubmissionService(subInfo.getSubmissionItem()).update(context, subInfo.getSubmissionItem());
+
+		// commit changes
 		context.dispatchEvents();
+
+		// if one or more fields errored out, return
+		if (getErrorFields(request) != null && getErrorFields(request).size() > 0) {
+			return STATUS_MISSING_REQUIRED_FIELDS;
+		}
+
+		// completed without errors
 		return STATUS_COMPLETE;
 	}
 
