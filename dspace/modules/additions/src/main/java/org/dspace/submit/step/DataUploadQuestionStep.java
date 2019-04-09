@@ -16,6 +16,8 @@ import org.dspace.content.factory.ContentServiceFactory;
 import org.dspace.core.Context;
 import org.dspace.submit.AbstractProcessingStep;
 
+import com.google.common.base.Strings;
+
 public class DataUploadQuestionStep extends AbstractProcessingStep {
 
 	// is the publication based on text, data or code?
@@ -77,8 +79,7 @@ public class DataUploadQuestionStep extends AbstractProcessingStep {
 		String buttonPressed = Util.getSubmitButton(request, NEXT_BUTTON);
 		Item item = subInfo.getSubmissionItem().getItem();
 
-		// Step 1:
-		// clear out all item metadata defined on this page
+		// Step 1: Clear out all item metadata defined on this page
 		itemService.clearMetadata(context, item, METADATA_BASED_ON[0], METADATA_BASED_ON[1], METADATA_BASED_ON[2], Item.ANY);
 		itemService.clearMetadata(context, item, METADATA_UPLOAD_STATE[0], METADATA_UPLOAD_STATE[1], METADATA_UPLOAD_STATE[2], Item.ANY);
 		itemService.clearMetadata(context, item, METADATA_COMMENT[0], METADATA_COMMENT[1], METADATA_COMMENT[2], Item.ANY);
@@ -86,33 +87,38 @@ public class DataUploadQuestionStep extends AbstractProcessingStep {
 		// Clear required-field errors first
 		clearErrorFields(request);
 
-		// Step 2:
-		// now update the item metadata
-
-		// Choosing an upload base means selecting one or more options
+		// Step 2: Now update the item metadata
+		// Manakin only: Choosing an upload base means selecting one or more options
 		String[] base = request.getParameterValues(PARAMETER_BASED_ON);
 		if (base != null) {
 			itemService.addMetadata(context, item, METADATA_BASED_ON[0], METADATA_BASED_ON[1], METADATA_BASED_ON[2], LANGUAGE_QUALIFIER, Arrays.asList(base));
 		}
-		// Choosing an upload state means selecting one option
+		// Manakin only: Choosing an upload state means selecting one option
 		String state = request.getParameter(PARAMETER_UPLOAD_STATE);
 		if (state != null) {
 			itemService.addMetadata(context, item, METADATA_UPLOAD_STATE[0], METADATA_UPLOAD_STATE[1], METADATA_UPLOAD_STATE[2], LANGUAGE_QUALIFIER, state);
 		}
-		// Giving a comment means entering some free text
+		// Manakin only: Giving a comment means entering some free text
 		String comment = request.getParameter(PARAMETER_COMMENT);
-		if (comment != null && !comment.isEmpty()) {
+		if (!Strings.isNullOrEmpty(comment)) {
 			itemService.addMetadata(context, item, METADATA_COMMENT[0], METADATA_COMMENT[1], METADATA_COMMENT[2], LANGUAGE_QUALIFIER, comment);
 		}
 
-		// Step 3:
-		// Check to see if any fields are missing
+		// Step 3: Check to see if any fields are missing
+		// Only check for required fields if user clicked the "next" or the "progress
+		// bar" button
+		if (buttonPressed.equals(NEXT_BUTTON) || buttonPressed.startsWith(PROGRESS_BAR_PREFIX)) {
+			// Upload state is required
+			if (state == null) {
+				addErrorField(request, PARAMETER_UPLOAD_STATE);
+			}
+			// Comment is required if upload state is "incomplete"
+			if (UPLOAD_STATE_INCOMPLETE.equals(state) && Strings.isNullOrEmpty(comment)) {
+				addErrorField(request, PARAMETER_COMMENT);
+			}
+		}
 
-		// since this field is missing add to list of error fields
-		// TODO addErrorField(request, getFieldName(inputs[i]));
-
-		// Step 4:
-		// Save changes to database
+		// Step 4: Save changes to database
 		ContentServiceFactory.getInstance().getInProgressSubmissionService(subInfo.getSubmissionItem()).update(context, subInfo.getSubmissionItem());
 
 		// commit changes
